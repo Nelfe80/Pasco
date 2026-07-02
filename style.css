@@ -1361,3 +1361,77 @@ body, html {
     z-index: 10;
 }
 
+/* Mobile responsive adjustments */
+@media (max-width: 600px) {
+    /* Scale down cards */
+    .card {
+        width: 70px;
+        height: 100px;
+        padding: 0.35rem;
+    }
+    
+    .card-center {
+        font-size: 1.4rem;
+        margin: 0;
+    }
+    
+    .card-corner span {
+        font-size: 0.75rem;
+    }
+    
+    .card-suit-mini {
+        font-size: 0.65rem;
+    }
+    
+    /* Optimize game table rows */
+    .game-table {
+        grid-template-rows: 110px 1fr 130px;
+        padding: 0.5rem;
+    }
+    
+    .table-cards-grid {
+        min-height: 110px;
+        gap: 0.5rem;
+        padding: 0.5rem;
+    }
+    
+    /* Adjust sidebar header and logo */
+    .logo-mini-img {
+        max-width: 100px;
+    }
+    
+    .sidebar-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .scoreboard-card {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+        margin-top: 0;
+    }
+    
+    .score-row .name {
+        font-size: 0.9rem;
+    }
+    
+    .score-row .score-val {
+        font-size: 1.1rem;
+    }
+    
+    .setup-card {
+        padding: 1.5rem;
+        max-width: 90%;
+    }
+    
+    .logo-img {
+        max-width: 240px;
+    }
+    
+    .logo-subtitle {
+        font-size: 0.95rem;
+        letter-spacing: 2px;
+    }
+}
+
