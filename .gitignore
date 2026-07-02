@@ -1,0 +1,6 @@
+# Agent/IDE directories
+.thebrain/
+
+# OS/System files
+.DS_Store
+Thumbs.db
