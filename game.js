@@ -565,19 +565,25 @@ async function executeDiscard(playedCard, player) {
     let startEl;
     if (player === "human") {
         startEl = document.querySelector(`#human-hand .card[data-id="${playedCard.id}"]`);
-        gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
-        gameState.selectedHandCard = null;
-        renderHumanHand();
+        if (startEl) startEl.style.visibility = "hidden";
     } else {
-        startEl = document.querySelector(`#computer-hand .card`);
-        gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
-        renderComputerHand();
+        startEl = document.querySelector(`#computer-hand .card.selected`) || document.querySelector(`#computer-hand .card`);
+        if (startEl) startEl.style.visibility = "hidden";
     }
 
     const tableEl = document.getElementById("table-cards");
     await animateCardFly(playedCard, startEl, tableEl, 500);
 
-    // Ajouter à la table
+    // Mettre à jour l'état et redessiner après l'animation
+    if (player === "human") {
+        gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
+        gameState.selectedHandCard = null;
+        renderHumanHand();
+    } else {
+        gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
+        renderComputerHand();
+    }
+
     gameState.table.push(playedCard);
     renderTableCards();
     
@@ -592,13 +598,10 @@ async function executeCapture(playedCard, targetCards, player) {
     let startElHand;
     if (player === "human") {
         startElHand = document.querySelector(`#human-hand .card[data-id="${playedCard.id}"]`);
-        gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
-        gameState.selectedHandCard = null;
-        renderHumanHand();
+        if (startElHand) startElHand.style.visibility = "hidden";
     } else {
         startElHand = document.querySelector(`#computer-hand .card.selected`) || document.querySelector(`#computer-hand .card`);
-        gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
-        renderComputerHand();
+        if (startElHand) startElHand.style.visibility = "hidden";
     }
 
     const tableEl = document.getElementById("table-cards");
@@ -606,6 +609,12 @@ async function executeCapture(playedCard, targetCards, player) {
 
     // 1. Animer la carte jouée volant vers la table
     await animateCardFly(playedCard, startElHand, tableEl, 400);
+
+    // Cacher les cibles sur la table avant leur déplacement
+    targetCards.forEach(targetCard => {
+        const cardEl = document.querySelector(`#table-cards .card[data-id="${targetCard.id}"]`);
+        if (cardEl) cardEl.style.visibility = "hidden";
+    });
 
     // 2. Animer simultanément la carte jouée + les cibles vers le pli
     const animations = [];
@@ -618,12 +627,22 @@ async function executeCapture(playedCard, targetCards, player) {
         }
     });
 
-    // Retirer de la table pendant le vol
+    await Promise.all(animations);
+
+    // Mettre à jour l'état après vol
+    if (player === "human") {
+        gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
+        gameState.selectedHandCard = null;
+        renderHumanHand();
+    } else {
+        gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
+        renderComputerHand();
+    }
+
+    // Retirer de la table
     const targetIds = targetCards.map(c => c.id);
     gameState.table = gameState.table.filter(c => !targetIds.includes(c.id));
     renderTableCards();
-
-    await Promise.all(animations);
 
     // Ajouter à la pile du joueur
     const pile = player === "human" ? gameState.pileHuman : gameState.pileComputer;
@@ -718,14 +737,12 @@ function checkSpecialCardAndPlay(card, player, onDecisionReady) {
 // L'As permet de voler une carte au choix, et l'As reste au centre (version animée)
 async function executeAceEffect(playedCard, targetCard) {
     const startElHand = document.querySelector(`#human-hand .card[data-id="${playedCard.id}"]`);
-    
-    gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
-    gameState.selectedHandCard = null;
-    gameState.pendingSpecialCard = null;
-    renderHumanHand();
+    if (startElHand) startElHand.style.visibility = "hidden";
 
     const tableEl = document.getElementById("table-cards");
     const targetEl = document.querySelector(`#table-cards .card[data-id="${targetCard.id}"]`);
+    if (targetEl) targetEl.style.visibility = "hidden";
+    
     const destAvatar = document.querySelector(".human-zone .avatar");
 
     const animations = [];
@@ -734,15 +751,19 @@ async function executeAceEffect(playedCard, targetCard) {
     }
     animations.push(animateCardFly(playedCard, startElHand, tableEl, 500));
 
-    gameState.table = gameState.table.filter(c => c.id !== targetCard.id);
-    renderTableCards();
-
     await Promise.all(animations);
+
+    gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
+    gameState.selectedHandCard = null;
+    gameState.pendingSpecialCard = null;
+    renderHumanHand();
+
+    gameState.table = gameState.table.filter(c => c.id !== targetCard.id);
+    gameState.table.push(playedCard);
+    renderTableCards();
 
     gameState.pileHuman.push(targetCard);
     gameState.lastWinner = "human";
-    gameState.table.push(playedCard);
-    renderTableCards();
 
     showToast(`${gameState.playerName} a utilisé l'effet de l'As pour voler le ${targetCard.value}${targetCard.color === "yellow" ? "🟨" : ""}. L'As reste au centre.`);
     
@@ -755,21 +776,22 @@ async function executeCrowned7Effect(playedCard, player) {
     let startElHand;
     if (player === "human") {
         startElHand = document.querySelector(`#human-hand .card[data-id="${playedCard.id}"]`);
-        gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
-        gameState.selectedHandCard = null;
-        renderHumanHand();
     } else {
         const compHandEl = document.querySelector("#computer-hand");
         startElHand = compHandEl.querySelector(".card.selected") || compHandEl.querySelector(".card");
-        gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
-        renderComputerHand();
     }
+    if (startElHand) startElHand.style.visibility = "hidden";
 
     const tableEl = document.getElementById("table-cards");
     const destAvatar = document.querySelector(player === "human" ? ".human-zone .avatar" : ".computer-zone .avatar");
 
     const captured = gameState.table.filter(c => c.value < 7);
     const capturedIds = captured.map(c => c.id);
+
+    captured.forEach(card => {
+        const cardEl = document.querySelector(`#table-cards .card[data-id="${card.id}"]`);
+        if (cardEl) cardEl.style.visibility = "hidden";
+    });
 
     const animations = [];
     animations.push(animateCardFly(playedCard, startElHand, tableEl, 500));
@@ -781,10 +803,20 @@ async function executeCrowned7Effect(playedCard, player) {
         }
     });
 
-    gameState.table = gameState.table.filter(c => !capturedIds.includes(c.id));
-    renderTableCards();
-
     await Promise.all(animations);
+
+    if (player === "human") {
+        gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
+        gameState.selectedHandCard = null;
+        renderHumanHand();
+    } else {
+        gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
+        renderComputerHand();
+    }
+
+    gameState.table = gameState.table.filter(c => !capturedIds.includes(c.id));
+    gameState.table.push(playedCard);
+    renderTableCards();
 
     const pile = player === "human" ? gameState.pileHuman : gameState.pileComputer;
     pile.push(...captured);
@@ -792,10 +824,6 @@ async function executeCrowned7Effect(playedCard, player) {
     if (captured.length > 0) {
         gameState.lastWinner = player;
     }
-
-    // Le 7 reste au centre
-    gameState.table.push(playedCard);
-    renderTableCards();
 
     const name = player === "human" ? gameState.playerName : "L'ordinateur";
     showToast(`${name} a joué le 7 Jaune Couronné et a volé toutes les cartes < 7 (${captured.length} cartes).`);
@@ -809,21 +837,22 @@ async function executeBlue7Effect(playedCard, player) {
     let startElHand;
     if (player === "human") {
         startElHand = document.querySelector(`#human-hand .card[data-id="${playedCard.id}"]`);
-        gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
-        gameState.selectedHandCard = null;
-        renderHumanHand();
     } else {
         const compHandEl = document.querySelector("#computer-hand");
         startElHand = compHandEl.querySelector(".card.selected") || compHandEl.querySelector(".card");
-        gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
-        renderComputerHand();
     }
+    if (startElHand) startElHand.style.visibility = "hidden";
 
     const tableEl = document.getElementById("table-cards");
     const destAvatar = document.querySelector(player === "human" ? ".human-zone .avatar" : ".computer-zone .avatar");
 
     const captured = gameState.table.filter(c => c.value > 7);
     const capturedIds = captured.map(c => c.id);
+
+    captured.forEach(card => {
+        const cardEl = document.querySelector(`#table-cards .card[data-id="${card.id}"]`);
+        if (cardEl) cardEl.style.visibility = "hidden";
+    });
 
     const animations = [];
     animations.push(animateCardFly(playedCard, startElHand, tableEl, 500));
@@ -835,10 +864,20 @@ async function executeBlue7Effect(playedCard, player) {
         }
     });
 
-    gameState.table = gameState.table.filter(c => !capturedIds.includes(c.id));
-    renderTableCards();
-
     await Promise.all(animations);
+
+    if (player === "human") {
+        gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
+        gameState.selectedHandCard = null;
+        renderHumanHand();
+    } else {
+        gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
+        renderComputerHand();
+    }
+
+    gameState.table = gameState.table.filter(c => !capturedIds.includes(c.id));
+    gameState.table.push(playedCard);
+    renderTableCards();
 
     const pile = player === "human" ? gameState.pileHuman : gameState.pileComputer;
     pile.push(...captured);
@@ -846,10 +885,6 @@ async function executeBlue7Effect(playedCard, player) {
     if (captured.length > 0) {
         gameState.lastWinner = player;
     }
-
-    // Le 7 reste au centre
-    gameState.table.push(playedCard);
-    renderTableCards();
 
     const name = player === "human" ? gameState.playerName : "L'ordinateur";
     showToast(`${name} a joué le 7 Bleu et a volé toutes les cartes > 7 (${captured.length} cartes).`);
@@ -925,8 +960,8 @@ function triggerHumanHandBonus() {
 async function runComputerTurn() {
     document.getElementById("action-prompt").textContent = "L'ordinateur réfléchit...";
     
-    // Attendre 1000ms (réflexion)
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Attendre 1500ms (réflexion)
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     // 1. Vérifier si l'ordinateur est éligible au Bonus de Main
     if (checkAIBonusEligibility()) {
@@ -957,8 +992,8 @@ async function runComputerTurn() {
             });
         }
 
-        // Attendre 1200ms pour laisser le joueur observer
-        await new Promise(resolve => setTimeout(resolve, 1200));
+        // Attendre 2000ms pour laisser le joueur observer
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Exécuter le meilleur coup
         if (bestPlay.useSpecialEffect) {
@@ -992,12 +1027,12 @@ async function runComputerTurn() {
 async function executeAceEffectAI(playedCard, targetCard) {
     const compHandEl = document.querySelector("#computer-hand");
     const startElHand = compHandEl.querySelector(".card.selected") || compHandEl.querySelector(".card");
-    
-    gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
-    renderComputerHand();
+    if (startElHand) startElHand.style.visibility = "hidden";
 
     const tableEl = document.getElementById("table-cards");
     const targetEl = document.querySelector(`#table-cards .card[data-id="${targetCard.id}"]`);
+    if (targetEl) targetEl.style.visibility = "hidden";
+    
     const destAvatar = document.querySelector(".computer-zone .avatar");
 
     const animations = [];
@@ -1006,7 +1041,13 @@ async function executeAceEffectAI(playedCard, targetCard) {
     }
     animations.push(animateCardFly(playedCard, startElHand, tableEl, 500));
 
+    await Promise.all(animations);
+
+    gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
+    renderComputerHand();
+
     gameState.table = gameState.table.filter(c => c.id !== targetCard.id);
+    gameState.table.push(playedCard);
     renderTableCards();
 
     await Promise.all(animations);
