@@ -337,6 +337,11 @@ function renderHumanHand() {
     gameState.handHuman.forEach(card => {
         const cardElement = createCardDOM(card);
         
+        // Si c'est la carte actuellement sélectionnée
+        if (gameState.selectedHandCard && gameState.selectedHandCard.id === card.id) {
+            cardElement.classList.add("selected");
+        }
+        
         // Sélection de carte en main
         cardElement.addEventListener("click", () => {
             if (gameState.activeTurn !== "human" || gameState.isAnimating) return;
@@ -367,6 +372,9 @@ function renderHumanHand() {
 
         handContainer.appendChild(cardElement);
     });
+
+    // Mettre à jour la bulle de pouvoir spécial pour la carte sélectionnée
+    updateSpecialPowerBubble(gameState.selectedHandCard);
 }
 
 // Bulle d'affichage des pouvoirs spéciaux
