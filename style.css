@@ -578,6 +578,43 @@ body, html {
     text-align: center;
 }
 
+.special-power-bubble {
+    background: rgba(245, 175, 25, 0.08);
+    border: 1px solid rgba(245, 175, 25, 0.3);
+    color: var(--accent-gold);
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+    max-width: 450px;
+    text-align: center;
+    line-height: 1.35;
+    box-shadow: 0 4px 15px rgba(245, 175, 25, 0.1);
+    animation: slideUpFade 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    margin-top: 0.5rem;
+}
+
+.special-power-bubble.blue-power {
+    background: rgba(0, 210, 255, 0.08);
+    border-color: rgba(0, 210, 255, 0.3);
+    color: var(--accent-blue);
+    box-shadow: 0 4px 15px rgba(0, 210, 255, 0.1);
+}
+
+.special-power-bubble.hidden {
+    display: none;
+}
+
+@keyframes slideUpFade {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Center Zone Layout */
 .center-zone {
     display: grid;
@@ -655,7 +692,7 @@ body, html {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
-    min-height: 140px;
+    min-height: 200px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: var(--radius-md);
     padding: 1rem;
@@ -668,6 +705,20 @@ body, html {
     box-shadow: 0 0 18px #ff9f43 !important;
     border-color: #ff9f43 !important;
     transform: translateY(-5px) scale(1.05);
+}
+
+/* Offsets pour différencier les cartes déposées par l'humain et le robot */
+.card.played-by-human {
+    transform: translateY(20px);
+}
+.card.played-by-computer {
+    transform: translateY(-20px);
+}
+.card.played-by-human.captured-glow {
+    transform: translateY(15px) scale(1.05) !important;
+}
+.card.played-by-computer.captured-glow {
+    transform: translateY(-25px) scale(1.05) !important;
 }
 
 /* --------------------------------------------------------------------------

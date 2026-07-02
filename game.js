@@ -168,6 +168,9 @@ async function dealTableInitial() {
 }
 
 async function startNewRound() {
+    gameState.isAnimating = true;
+    updateSpecialPowerBubble(null);
+
     document.getElementById("round-indicator").textContent = `Manche ${gameState.currentRound}`;
     
     // Réinitialiser les tas et les mains
@@ -207,6 +210,7 @@ async function startNewRound() {
     checkBonusEligibility();
     
     showToast("Nouvelle manche ! À vous de jouer.");
+    gameState.isAnimating = false;
 }
 
 // Génère un jeu de 40 cartes : 10 jaunes (1-10) et 30 bleues (1-10 répété 3 fois)
@@ -335,7 +339,7 @@ function renderHumanHand() {
         
         // Sélection de carte en main
         cardElement.addEventListener("click", () => {
-            if (gameState.activeTurn !== "human") return;
+            if (gameState.activeTurn !== "human" || gameState.isAnimating) return;
             
             // Si on est en train de choisir des cibles pour un As/7 spécial, on ne change pas de carte
             if (document.querySelectorAll(".selectable-target").length > 0) {
@@ -351,16 +355,47 @@ function renderHumanHand() {
                 gameState.selectedHandCard = null;
                 document.getElementById("action-prompt").textContent = "Sélectionnez une carte pour jouer";
                 clearTableHighlights();
+                updateSpecialPowerBubble(null);
             } else {
                 gameState.selectedHandCard = card;
                 cardElement.classList.add("selected");
                 document.getElementById("action-prompt").textContent = "Cliquez sur la table pour jouer la carte ou faire un pli";
                 highlightTableCaptures(card);
+                updateSpecialPowerBubble(card);
             }
         });
 
         handContainer.appendChild(cardElement);
     });
+}
+
+// Bulle d'affichage des pouvoirs spéciaux
+function updateSpecialPowerBubble(card) {
+    const bubble = document.getElementById("special-power-bubble");
+    if (!bubble) return;
+
+    if (!card) {
+        bubble.classList.add("hidden");
+        bubble.textContent = "";
+        return;
+    }
+
+    if (card.value === 1) {
+        bubble.className = "special-power-bubble";
+        bubble.textContent = "⚡ POUVOIR DE L'AS : Vole une carte au choix du centre. L'As reste au centre.";
+        bubble.classList.remove("hidden");
+    } else if (card.value === 7 && card.isCrowned) {
+        bubble.className = "special-power-bubble";
+        bubble.textContent = "👑 7 COURONNÉ : Capture toutes les cartes inférieures à 7 (< 7) du centre. Le 7 reste au centre.";
+        bubble.classList.remove("hidden");
+    } else if (card.value === 7 && card.color === "blue") {
+        bubble.className = "special-power-bubble blue-power";
+        bubble.textContent = "🗡️ 7 BLEU (Coupe) : Capture toutes les cartes supérieures à 7 (> 7) du centre. Le 7 reste au centre.";
+        bubble.classList.remove("hidden");
+    } else {
+        bubble.classList.add("hidden");
+        bubble.textContent = "";
+    }
 }
 
 // Rendu des dos de cartes de l'ordinateur
@@ -381,7 +416,11 @@ function renderComputerHand() {
 // Utilitaire de création de carte HTML
 function createCardDOM(card) {
     const cardDiv = document.createElement("div");
-    cardDiv.className = `card ${card.color} ${card.isCrowned ? 'crowned' : ''}`;
+    let playClass = "";
+    if (card.playedBy === "human") playClass = "played-by-human";
+    else if (card.playedBy === "computer") playClass = "played-by-computer";
+
+    cardDiv.className = `card ${card.color} ${card.isCrowned ? 'crowned' : ''} ${playClass}`;
     cardDiv.dataset.id = card.id;
 
     // Coin supérieur
@@ -617,6 +656,9 @@ async function executeDiscard(playedCard, player) {
 
 // Effectuer un pli standard avec animation
 async function executeCapture(playedCard, targetCards, player) {
+    gameState.isAnimating = true;
+    updateSpecialPowerBubble(null);
+
     let startElHand;
     if (player === "human") {
         startElHand = document.querySelector(`#human-hand .card[data-id="${playedCard.id}"]`);
@@ -625,6 +667,9 @@ async function executeCapture(playedCard, targetCards, player) {
         startElHand = document.querySelector(`#computer-hand .card.selected`) || document.querySelector(`#computer-hand .card`);
         if (startElHand) startElHand.style.visibility = "hidden";
     }
+
+    // Associer qui a joué la carte pour l'offset
+    playedCard.playedBy = player;
 
     const tableEl = document.getElementById("table-cards");
     const destAvatar = document.querySelector(player === "human" ? ".human-zone .avatar" : ".computer-zone .avatar");
@@ -784,8 +829,13 @@ function checkSpecialCardAndPlay(card, player, onDecisionReady) {
 
 // L'As permet de voler une carte au choix, et l'As reste au centre (version animée)
 async function executeAceEffect(playedCard, targetCard) {
+    gameState.isAnimating = true;
+    updateSpecialPowerBubble(null);
+
     const startElHand = document.querySelector(`#human-hand .card[data-id="${playedCard.id}"]`);
     if (startElHand) startElHand.style.visibility = "hidden";
+
+    playedCard.playedBy = "human";
 
     const tableEl = document.getElementById("table-cards");
     const destAvatar = document.querySelector(".human-zone .avatar");
@@ -842,6 +892,9 @@ async function executeAceEffect(playedCard, targetCard) {
 
 // Le 7 Couronné vole tout < 7, le 7 reste au centre (version animée)
 async function executeCrowned7Effect(playedCard, player) {
+    gameState.isAnimating = true;
+    if (player === "human") updateSpecialPowerBubble(null);
+
     let startElHand;
     if (player === "human") {
         startElHand = document.querySelector(`#human-hand .card[data-id="${playedCard.id}"]`);
@@ -850,6 +903,8 @@ async function executeCrowned7Effect(playedCard, player) {
         startElHand = compHandEl.querySelector(".card.selected") || compHandEl.querySelector(".card");
     }
     if (startElHand) startElHand.style.visibility = "hidden";
+
+    playedCard.playedBy = player;
 
     const tableEl = document.getElementById("table-cards");
     const destAvatar = document.querySelector(player === "human" ? ".human-zone .avatar" : ".computer-zone .avatar");
@@ -926,6 +981,9 @@ async function executeCrowned7Effect(playedCard, player) {
 
 // Le 7 Bleu vole tout > 7, le 7 reste au centre (version animée)
 async function executeBlue7Effect(playedCard, player) {
+    gameState.isAnimating = true;
+    if (player === "human") updateSpecialPowerBubble(null);
+
     let startElHand;
     if (player === "human") {
         startElHand = document.querySelector(`#human-hand .card[data-id="${playedCard.id}"]`);
@@ -934,6 +992,8 @@ async function executeBlue7Effect(playedCard, player) {
         startElHand = compHandEl.querySelector(".card.selected") || compHandEl.querySelector(".card");
     }
     if (startElHand) startElHand.style.visibility = "hidden";
+
+    playedCard.playedBy = player;
 
     const tableEl = document.getElementById("table-cards");
     const destAvatar = document.querySelector(player === "human" ? ".human-zone .avatar" : ".computer-zone .avatar");
@@ -1143,6 +1203,8 @@ async function executeAceEffectAI(playedCard, targetCard) {
     const compHandEl = document.querySelector("#computer-hand");
     const startElHand = compHandEl.querySelector(".card.selected") || compHandEl.querySelector(".card");
     if (startElHand) startElHand.style.visibility = "hidden";
+
+    playedCard.playedBy = "computer";
 
     const tableEl = document.getElementById("table-cards");
     const destAvatar = document.querySelector(".computer-zone .avatar");
@@ -1368,12 +1430,14 @@ async function endTurn() {
     // Vérifier si la manche est terminée (mains et pioche vides)
     if (gameState.handHuman.length === 0 && gameState.handComputer.length === 0) {
         if (gameState.deck.length > 0) {
+            gameState.isAnimating = true;
             // Si la pioche n'est pas vide, redistribuer avec animation
             await distributeCardsAnimated();
             updateUI();
             checkBonusEligibility();
             gameState.activeTurn = "human";
             document.getElementById("action-prompt").textContent = "Sélectionnez une carte pour jouer";
+            gameState.isAnimating = false;
         } else {
             // Fin de la manche
             await endRound();
@@ -1382,11 +1446,13 @@ async function endTurn() {
         // Alterner les tours
         if (gameState.activeTurn === "human") {
             gameState.activeTurn = "computer";
+            gameState.isAnimating = true;
             await runComputerTurn();
         } else {
             gameState.activeTurn = "human";
             checkBonusEligibility();
             document.getElementById("action-prompt").textContent = "Sélectionnez une carte pour jouer";
+            gameState.isAnimating = false;
         }
     }
 }
