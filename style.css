@@ -664,6 +664,12 @@ body, html {
     perspective: 1000px;
 }
 
+.card.captured-glow {
+    box-shadow: 0 0 18px #ff9f43 !important;
+    border-color: #ff9f43 !important;
+    transform: translateY(-5px) scale(1.05);
+}
+
 /* --------------------------------------------------------------------------
    CARD DESIGN & RENDER
    -------------------------------------------------------------------------- */

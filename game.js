@@ -610,15 +610,36 @@ async function executeCapture(playedCard, targetCards, player) {
     // 1. Animer la carte jouée volant vers la table
     await animateCardFly(playedCard, startElHand, tableEl, 400);
 
-    // Cacher les cibles sur la table avant leur déplacement
+    // Mettre la carte jouée temporairement au centre
+    gameState.table.push(playedCard);
+    renderTableCards();
+
+    // Mettre en surbrillance la carte jouée et les cibles
+    const targetIds = targetCards.map(c => c.id);
+    document.querySelectorAll("#table-cards .card").forEach(el => {
+        const id = parseInt(el.dataset.id, 10);
+        if (id === playedCard.id || targetIds.includes(id)) {
+            el.classList.add("captured-glow");
+        }
+    });
+
+    // Pause de 1000ms pour observer
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Retirer la carte jouée de la table pour le vol
+    gameState.table = gameState.table.filter(c => c.id !== playedCard.id);
+
+    // Cacher les cartes sur la table avant de lancer l'animation vers le pli
     targetCards.forEach(targetCard => {
         const cardEl = document.querySelector(`#table-cards .card[data-id="${targetCard.id}"]`);
         if (cardEl) cardEl.style.visibility = "hidden";
     });
+    const playedCardElOnTable = document.querySelector(`#table-cards .card[data-id="${playedCard.id}"]`);
+    if (playedCardElOnTable) playedCardElOnTable.style.visibility = "hidden";
 
     // 2. Animer simultanément la carte jouée + les cibles vers le pli
     const animations = [];
-    animations.push(animateCardFly(playedCard, tableEl, destAvatar, 500));
+    animations.push(animateCardFly(playedCard, playedCardElOnTable || tableEl, destAvatar, 500));
 
     targetCards.forEach(targetCard => {
         const cardEl = document.querySelector(`#table-cards .card[data-id="${targetCard.id}"]`);
@@ -639,8 +660,7 @@ async function executeCapture(playedCard, targetCards, player) {
         renderComputerHand();
     }
 
-    // Retirer de la table
-    const targetIds = targetCards.map(c => c.id);
+    // Retirer les cibles de la table
     gameState.table = gameState.table.filter(c => !targetIds.includes(c.id));
     renderTableCards();
 
@@ -741,17 +761,35 @@ async function executeAceEffect(playedCard, targetCard) {
 
     const tableEl = document.getElementById("table-cards");
     const targetEl = document.querySelector(`#table-cards .card[data-id="${targetCard.id}"]`);
-    if (targetEl) targetEl.style.visibility = "hidden";
     
     const destAvatar = document.querySelector(".human-zone .avatar");
 
-    const animations = [];
-    if (targetEl) {
-        animations.push(animateCardFly(targetCard, targetEl, destAvatar, 500));
-    }
-    animations.push(animateCardFly(playedCard, startElHand, tableEl, 500));
+    // 1. Animer la carte jouée volant vers la table
+    await animateCardFly(playedCard, startElHand, tableEl, 500);
 
-    await Promise.all(animations);
+    // L'As reste au centre
+    gameState.table.push(playedCard);
+    renderTableCards();
+
+    // Mettre en surbrillance l'As et la cible
+    document.querySelectorAll("#table-cards .card").forEach(el => {
+        const id = parseInt(el.dataset.id, 10);
+        if (id === playedCard.id || id === targetCard.id) {
+            el.classList.add("captured-glow");
+        }
+    });
+
+    // Pause d'observation (1000ms)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Cacher la cible sur la table avant le vol
+    const targetElOnTable = document.querySelector(`#table-cards .card[data-id="${targetCard.id}"]`);
+    if (targetElOnTable) targetElOnTable.style.visibility = "hidden";
+
+    // 2. Animer la cible vers le pli
+    if (targetElOnTable) {
+        await animateCardFly(targetCard, targetElOnTable, destAvatar, 500);
+    }
 
     gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
     gameState.selectedHandCard = null;
@@ -759,7 +797,6 @@ async function executeAceEffect(playedCard, targetCard) {
     renderHumanHand();
 
     gameState.table = gameState.table.filter(c => c.id !== targetCard.id);
-    gameState.table.push(playedCard);
     renderTableCards();
 
     gameState.pileHuman.push(targetCard);
@@ -788,14 +825,32 @@ async function executeCrowned7Effect(playedCard, player) {
     const captured = gameState.table.filter(c => c.value < 7);
     const capturedIds = captured.map(c => c.id);
 
+    // 1. Animer la carte jouée volant vers la table
+    await animateCardFly(playedCard, startElHand, tableEl, 500);
+
+    // Le 7 reste au centre
+    gameState.table.push(playedCard);
+    renderTableCards();
+
+    // Mettre en surbrillance le 7 et les cibles (< 7)
+    document.querySelectorAll("#table-cards .card").forEach(el => {
+        const id = parseInt(el.dataset.id, 10);
+        if (id === playedCard.id || capturedIds.includes(id)) {
+            el.classList.add("captured-glow");
+        }
+    });
+
+    // Pause d'observation (1000ms)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Cacher les cibles sur la table avant le vol vers le pli (le 7 reste visible au centre !)
     captured.forEach(card => {
         const cardEl = document.querySelector(`#table-cards .card[data-id="${card.id}"]`);
         if (cardEl) cardEl.style.visibility = "hidden";
     });
 
+    // 2. Animer les captures vers le pli
     const animations = [];
-    animations.push(animateCardFly(playedCard, startElHand, tableEl, 500));
-
     captured.forEach(card => {
         const cardEl = document.querySelector(`#table-cards .card[data-id="${card.id}"]`);
         if (cardEl) {
@@ -815,7 +870,6 @@ async function executeCrowned7Effect(playedCard, player) {
     }
 
     gameState.table = gameState.table.filter(c => !capturedIds.includes(c.id));
-    gameState.table.push(playedCard);
     renderTableCards();
 
     const pile = player === "human" ? gameState.pileHuman : gameState.pileComputer;
@@ -849,14 +903,32 @@ async function executeBlue7Effect(playedCard, player) {
     const captured = gameState.table.filter(c => c.value > 7);
     const capturedIds = captured.map(c => c.id);
 
+    // 1. Animer la carte jouée volant vers la table
+    await animateCardFly(playedCard, startElHand, tableEl, 500);
+
+    // Le 7 reste au centre
+    gameState.table.push(playedCard);
+    renderTableCards();
+
+    // Mettre en surbrillance le 7 et les cibles (> 7)
+    document.querySelectorAll("#table-cards .card").forEach(el => {
+        const id = parseInt(el.dataset.id, 10);
+        if (id === playedCard.id || capturedIds.includes(id)) {
+            el.classList.add("captured-glow");
+        }
+    });
+
+    // Pause d'observation (1000ms)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Cacher les cibles sur la table avant le vol vers le pli
     captured.forEach(card => {
         const cardEl = document.querySelector(`#table-cards .card[data-id="${card.id}"]`);
         if (cardEl) cardEl.style.visibility = "hidden";
     });
 
+    // 2. Animer les captures vers le pli
     const animations = [];
-    animations.push(animateCardFly(playedCard, startElHand, tableEl, 500));
-
     captured.forEach(card => {
         const cardEl = document.querySelector(`#table-cards .card[data-id="${card.id}"]`);
         if (cardEl) {
@@ -876,7 +948,6 @@ async function executeBlue7Effect(playedCard, player) {
     }
 
     gameState.table = gameState.table.filter(c => !capturedIds.includes(c.id));
-    gameState.table.push(playedCard);
     renderTableCards();
 
     const pile = player === "human" ? gameState.pileHuman : gameState.pileComputer;
@@ -1030,32 +1101,43 @@ async function executeAceEffectAI(playedCard, targetCard) {
     if (startElHand) startElHand.style.visibility = "hidden";
 
     const tableEl = document.getElementById("table-cards");
-    const targetEl = document.querySelector(`#table-cards .card[data-id="${targetCard.id}"]`);
-    if (targetEl) targetEl.style.visibility = "hidden";
-    
     const destAvatar = document.querySelector(".computer-zone .avatar");
 
-    const animations = [];
-    if (targetEl) {
-        animations.push(animateCardFly(targetCard, targetEl, destAvatar, 500));
-    }
-    animations.push(animateCardFly(playedCard, startElHand, tableEl, 500));
+    // 1. Animer l'As volant de la main de l'ordinateur vers la table
+    await animateCardFly(playedCard, startElHand, tableEl, 500);
 
-    await Promise.all(animations);
+    // L'As reste au centre
+    gameState.table.push(playedCard);
+    renderTableCards();
+
+    // Mettre en surbrillance l'As et la cible
+    document.querySelectorAll("#table-cards .card").forEach(el => {
+        const id = parseInt(el.dataset.id, 10);
+        if (id === playedCard.id || id === targetCard.id) {
+            el.classList.add("captured-glow");
+        }
+    });
+
+    // Pause d'observation (1000ms)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Cacher la cible sur la table avant le vol
+    const targetElOnTable = document.querySelector(`#table-cards .card[data-id="${targetCard.id}"]`);
+    if (targetElOnTable) targetElOnTable.style.visibility = "hidden";
+
+    // 2. Animer la cible vers le pli
+    if (targetElOnTable) {
+        await animateCardFly(targetCard, targetElOnTable, destAvatar, 500);
+    }
 
     gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
     renderComputerHand();
 
     gameState.table = gameState.table.filter(c => c.id !== targetCard.id);
-    gameState.table.push(playedCard);
     renderTableCards();
-
-    await Promise.all(animations);
 
     gameState.pileComputer.push(targetCard);
     gameState.lastWinner = "computer";
-    gameState.table.push(playedCard);
-    renderTableCards();
 
     showToast(`L'ordinateur a utilisé l'effet de l'As pour voler le ${targetCard.value}${targetCard.color === "yellow" ? "🟨" : ""}. L'As reste au centre.`);
     await endTurn();
