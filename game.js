@@ -148,16 +148,22 @@ async function startNewGame() {
 
 async function dealTableInitial() {
     const deckEl = document.getElementById("draw-deck");
-    const tableEl = document.getElementById("table-cards");
 
     for (let i = 0; i < 4; i++) {
         const card = gameState.deck.pop();
         gameState.table.push(card);
         document.getElementById("deck-card-count").textContent = gameState.deck.length;
         
-        // Animer
-        await animateCardFly(card, deckEl, tableEl, 400);
+        // Rendre la table avec la nouvelle carte masquée
         renderTableCards();
+        const newCardEl = document.querySelector(`#table-cards .card[data-id="${card.id}"]`);
+        if (newCardEl) newCardEl.style.visibility = "hidden";
+
+        // Animer de la pioche vers l'emplacement exact
+        await animateCardFly(card, deckEl, newCardEl, 400);
+        
+        // Rendre visible
+        if (newCardEl) newCardEl.style.visibility = "visible";
     }
 }
 
@@ -244,8 +250,6 @@ function shuffle(array) {
 // Distribue 3 cartes à chaque joueur avec animation de vol
 async function distributeCardsAnimated() {
     const deckEl = document.getElementById("draw-deck");
-    const humanHandEl = document.getElementById("human-hand");
-    const computerHandEl = document.getElementById("computer-hand");
 
     if (gameState.deck.length >= 6) {
         for (let i = 0; i < 3; i++) {
@@ -253,15 +257,26 @@ async function distributeCardsAnimated() {
             const cardH = gameState.deck.pop();
             gameState.handHuman.push(cardH);
             document.getElementById("deck-card-count").textContent = gameState.deck.length;
-            await animateCardFly(cardH, deckEl, humanHandEl, 400);
+            
             renderHumanHand();
+            const newCardEl = document.querySelector(`#human-hand .card[data-id="${cardH.id}"]`);
+            if (newCardEl) newCardEl.style.visibility = "hidden";
+
+            await animateCardFly(cardH, deckEl, newCardEl, 400);
+            if (newCardEl) newCardEl.style.visibility = "visible";
 
             // Ordinateur (face cachée)
             const cardC = gameState.deck.pop();
             gameState.handComputer.push(cardC);
             document.getElementById("deck-card-count").textContent = gameState.deck.length;
-            await animateCardFly(null, deckEl, computerHandEl, 400);
+            
             renderComputerHand();
+            const compHandEl = document.getElementById("computer-hand");
+            const newCompCardEl = compHandEl.lastElementChild;
+            if (newCompCardEl) newCompCardEl.style.visibility = "hidden";
+
+            await animateCardFly(null, deckEl, newCompCardEl, 400);
+            if (newCompCardEl) newCompCardEl.style.visibility = "visible";
         }
     }
 }
@@ -571,10 +586,17 @@ async function executeDiscard(playedCard, player) {
         if (startEl) startEl.style.visibility = "hidden";
     }
 
-    const tableEl = document.getElementById("table-cards");
-    await animateCardFly(playedCard, startEl, tableEl, 500);
+    // Mettre à jour l'état et redessiner d'abord la table avec la nouvelle carte masquée
+    gameState.table.push(playedCard);
+    renderTableCards();
 
-    // Mettre à jour l'état et redessiner après l'animation
+    const newCardEl = document.querySelector(`#table-cards .card[data-id="${playedCard.id}"]`);
+    if (newCardEl) newCardEl.style.visibility = "hidden";
+
+    // Faire voler vers l'emplacement exact
+    await animateCardFly(playedCard, startEl, newCardEl, 500);
+
+    // Mettre à jour les mains après vol
     if (player === "human") {
         gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
         gameState.selectedHandCard = null;
@@ -584,8 +606,8 @@ async function executeDiscard(playedCard, player) {
         renderComputerHand();
     }
 
-    gameState.table.push(playedCard);
-    renderTableCards();
+    // Rendre la carte visible sur la table
+    if (newCardEl) newCardEl.style.visibility = "visible";
     
     showToast(`${player === "human" ? gameState.playerName : "L'ordinateur"} a posé un ${playedCard.value} au centre.`);
     
@@ -607,12 +629,18 @@ async function executeCapture(playedCard, targetCards, player) {
     const tableEl = document.getElementById("table-cards");
     const destAvatar = document.querySelector(player === "human" ? ".human-zone .avatar" : ".computer-zone .avatar");
 
-    // 1. Animer la carte jouée volant vers la table
-    await animateCardFly(playedCard, startElHand, tableEl, 400);
-
-    // Mettre la carte jouée temporairement au centre
+    // 1. Ajouter temporairement la carte jouée à la table et la rendre masquée
     gameState.table.push(playedCard);
     renderTableCards();
+
+    const newCardElOnTable = document.querySelector(`#table-cards .card[data-id="${playedCard.id}"]`);
+    if (newCardElOnTable) newCardElOnTable.style.visibility = "hidden";
+
+    // Animer la carte jouée volant vers son emplacement exact sur la table
+    await animateCardFly(playedCard, startElHand, newCardElOnTable || tableEl, 400);
+
+    // Rendre visible
+    if (newCardElOnTable) newCardElOnTable.style.visibility = "visible";
 
     // Mettre en surbrillance la carte jouée et les cibles
     const targetIds = targetCards.map(c => c.id);
@@ -760,16 +788,20 @@ async function executeAceEffect(playedCard, targetCard) {
     if (startElHand) startElHand.style.visibility = "hidden";
 
     const tableEl = document.getElementById("table-cards");
-    const targetEl = document.querySelector(`#table-cards .card[data-id="${targetCard.id}"]`);
-    
     const destAvatar = document.querySelector(".human-zone .avatar");
 
-    // 1. Animer la carte jouée volant vers la table
-    await animateCardFly(playedCard, startElHand, tableEl, 500);
-
-    // L'As reste au centre
+    // L'As reste au centre, on l'y met temporairement masqué
     gameState.table.push(playedCard);
     renderTableCards();
+
+    const newCardElOnTable = document.querySelector(`#table-cards .card[data-id="${playedCard.id}"]`);
+    if (newCardElOnTable) newCardElOnTable.style.visibility = "hidden";
+
+    // 1. Animer la carte jouée volant vers son emplacement exact sur la table
+    await animateCardFly(playedCard, startElHand, newCardElOnTable || tableEl, 500);
+
+    // Rendre visible
+    if (newCardElOnTable) newCardElOnTable.style.visibility = "visible";
 
     // Mettre en surbrillance l'As et la cible
     document.querySelectorAll("#table-cards .card").forEach(el => {
@@ -825,12 +857,18 @@ async function executeCrowned7Effect(playedCard, player) {
     const captured = gameState.table.filter(c => c.value < 7);
     const capturedIds = captured.map(c => c.id);
 
-    // 1. Animer la carte jouée volant vers la table
-    await animateCardFly(playedCard, startElHand, tableEl, 500);
-
-    // Le 7 reste au centre
+    // Le 7 reste au centre, on l'y met temporairement masqué
     gameState.table.push(playedCard);
     renderTableCards();
+
+    const newCardElOnTable = document.querySelector(`#table-cards .card[data-id="${playedCard.id}"]`);
+    if (newCardElOnTable) newCardElOnTable.style.visibility = "hidden";
+
+    // 1. Animer la carte jouée volant vers son emplacement exact sur la table
+    await animateCardFly(playedCard, startElHand, newCardElOnTable || tableEl, 500);
+
+    // Rendre visible
+    if (newCardElOnTable) newCardElOnTable.style.visibility = "visible";
 
     // Mettre en surbrillance le 7 et les cibles (< 7)
     document.querySelectorAll("#table-cards .card").forEach(el => {
@@ -903,12 +941,18 @@ async function executeBlue7Effect(playedCard, player) {
     const captured = gameState.table.filter(c => c.value > 7);
     const capturedIds = captured.map(c => c.id);
 
-    // 1. Animer la carte jouée volant vers la table
-    await animateCardFly(playedCard, startElHand, tableEl, 500);
-
-    // Le 7 reste au centre
+    // Le 7 reste au centre, on l'y met temporairement masqué
     gameState.table.push(playedCard);
     renderTableCards();
+
+    const newCardElOnTable = document.querySelector(`#table-cards .card[data-id="${playedCard.id}"]`);
+    if (newCardElOnTable) newCardElOnTable.style.visibility = "hidden";
+
+    // 1. Animer la carte jouée volant vers son emplacement exact sur la table
+    await animateCardFly(playedCard, startElHand, newCardElOnTable || tableEl, 500);
+
+    // Rendre visible
+    if (newCardElOnTable) newCardElOnTable.style.visibility = "visible";
 
     // Mettre en surbrillance le 7 et les cibles (> 7)
     document.querySelectorAll("#table-cards .card").forEach(el => {
@@ -1103,12 +1147,18 @@ async function executeAceEffectAI(playedCard, targetCard) {
     const tableEl = document.getElementById("table-cards");
     const destAvatar = document.querySelector(".computer-zone .avatar");
 
-    // 1. Animer l'As volant de la main de l'ordinateur vers la table
-    await animateCardFly(playedCard, startElHand, tableEl, 500);
-
-    // L'As reste au centre
+    // L'As reste au centre, on l'y met temporairement masqué
     gameState.table.push(playedCard);
     renderTableCards();
+
+    const newCardElOnTable = document.querySelector(`#table-cards .card[data-id="${playedCard.id}"]`);
+    if (newCardElOnTable) newCardElOnTable.style.visibility = "hidden";
+
+    // 1. Animer l'As volant de la main de l'ordinateur vers son emplacement exact sur la table
+    await animateCardFly(playedCard, startElHand, newCardElOnTable || tableEl, 500);
+
+    // Rendre visible
+    if (newCardElOnTable) newCardElOnTable.style.visibility = "visible";
 
     // Mettre en surbrillance l'As et la cible
     document.querySelectorAll("#table-cards .card").forEach(el => {
