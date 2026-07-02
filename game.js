@@ -136,6 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // --- CRÉATION ET CRASH DU JEU ---
 
 async function startNewGame() {
+    gameState.isAnimating = false; // Reset lock to allow start
     gameState.scores = { human: 0, computer: 0 };
     gameState.currentRound = 1;
     gameState.history = [];
@@ -168,6 +169,7 @@ async function dealTableInitial() {
 }
 
 async function startNewRound() {
+    if (gameState.isAnimating) return;
     gameState.isAnimating = true;
     updateSpecialPowerBubble(null);
 
@@ -1618,12 +1620,14 @@ function showRoundSummaryModal(pts) {
     if (gameState.scores.human >= gameState.targetScore || gameState.scores.computer >= gameState.targetScore) {
         nextBtn.textContent = "Voir le Vainqueur";
         nextBtn.onclick = () => {
+            nextBtn.onclick = null;
             document.getElementById("round-modal").classList.remove("active");
             triggerGameOver();
         };
     } else {
         nextBtn.textContent = "Manche Suivante";
         nextBtn.onclick = () => {
+            nextBtn.onclick = null;
             document.getElementById("round-modal").classList.remove("active");
             gameState.currentRound += 1;
             startNewRound();
