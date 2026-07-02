@@ -51,7 +51,7 @@
 body, html {
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at 50% 50%, rgba(22, 24, 57, 0.7) 0%, rgba(10, 11, 28, 0.96) 100%), url('images/bg.png') no-repeat center center / cover;
+    background: radial-gradient(circle at 50% 50%, #161839 0%, #0a0b1c 100%);
     color: var(--text-primary);
     overflow: hidden;
 }
@@ -473,7 +473,7 @@ body, html {
     grid-template-rows: 160px 1fr 180px;
     height: 100%;
     padding: 1rem;
-    background: radial-gradient(circle at center, #1b382b 0%, #0d1a14 100%); /* Felt-like dark green overlay */
+    background: radial-gradient(circle at center, rgba(27, 56, 43, 0.4) 0%, rgba(13, 26, 20, 0.85) 100%), url('images/bg.png') no-repeat center center / cover;
     box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.8);
     position: relative;
 }
@@ -710,7 +710,7 @@ body, html {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
-    min-height: 200px;
+    min-height: 160px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: var(--radius-md);
     padding: 1rem;
@@ -723,20 +723,6 @@ body, html {
     box-shadow: 0 0 18px #ff9f43 !important;
     border-color: #ff9f43 !important;
     transform: translateY(-5px) scale(1.05);
-}
-
-/* Offsets pour différencier les cartes déposées par l'humain et le robot */
-.card.played-by-human {
-    transform: translateY(20px);
-}
-.card.played-by-computer {
-    transform: translateY(-20px);
-}
-.card.played-by-human.captured-glow {
-    transform: translateY(15px) scale(1.05) !important;
-}
-.card.played-by-computer.captured-glow {
-    transform: translateY(-25px) scale(1.05) !important;
 }
 
 /* --------------------------------------------------------------------------
