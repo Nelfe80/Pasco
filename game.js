@@ -37,7 +37,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const closeRulesBtn = document.getElementById("close-rules-btn");
     const quitBtn = document.getElementById("quit-btn");
     const handBonusBtn = document.getElementById("hand-bonus-btn");
-    const nextRoundBtn = document.getElementById("next-round-btn");
     const restartBtn = document.getElementById("restart-btn");
     const gameOverHomeBtn = document.getElementById("game-over-home-btn");
 
@@ -93,11 +92,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Modale de fin de manche
-    nextRoundBtn.addEventListener("click", async () => {
-        roundModal.classList.remove("active");
-        await startNewRound();
-    });
 
     // Modale de fin de partie
     restartBtn.addEventListener("click", async () => {
