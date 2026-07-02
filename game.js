@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const specialNormalBtn = document.getElementById("special-normal-btn");
 
     // Démarrage de partie
-    startBtn.addEventListener("click", () => {
+    startBtn.addEventListener("click", async () => {
         const nameInput = document.getElementById("player-name").value.trim();
         gameState.playerName = nameInput ? nameInput : "Joueur";
         
@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
         gameScreen.classList.add("active");
 
         showToast(`Bienvenue ${gameState.playerName} ! La partie commence.`);
-        startNewGame();
+        await startNewGame();
     });
 
     // Règles du jeu
@@ -94,15 +94,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Modale de fin de manche
-    nextRoundBtn.addEventListener("click", () => {
+    nextRoundBtn.addEventListener("click", async () => {
         roundModal.classList.remove("active");
-        startNewRound();
+        await startNewRound();
     });
 
     // Modale de fin de partie
-    restartBtn.addEventListener("click", () => {
+    restartBtn.addEventListener("click", async () => {
         gameOverModal.classList.remove("active");
-        startNewGame();
+        await startNewGame();
     });
 
     gameOverHomeBtn.addEventListener("click", () => {
@@ -135,7 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // --- CRÉATION ET CRASH DU JEU ---
 
-function startNewGame() {
+async function startNewGame() {
     gameState.scores = { human: 0, computer: 0 };
     gameState.currentRound = 1;
     gameState.history = [];
@@ -143,10 +143,25 @@ function startNewGame() {
     document.getElementById("total-score-computer").textContent = "0";
     document.getElementById("history-list").innerHTML = '<div class="empty-history">Aucune manche jouée.</div>';
     
-    startNewRound();
+    await startNewRound();
 }
 
-function startNewRound() {
+async function dealTableInitial() {
+    const deckEl = document.getElementById("draw-deck");
+    const tableEl = document.getElementById("table-cards");
+
+    for (let i = 0; i < 4; i++) {
+        const card = gameState.deck.pop();
+        gameState.table.push(card);
+        document.getElementById("deck-card-count").textContent = gameState.deck.length;
+        
+        // Animer
+        await animateCardFly(card, deckEl, tableEl, 400);
+        renderTableCards();
+    }
+}
+
+async function startNewRound() {
     document.getElementById("round-indicator").textContent = `Manche ${gameState.currentRound}`;
     
     // Réinitialiser les tas et les mains
@@ -172,16 +187,17 @@ function startNewRound() {
     // Mélanger le deck
     shuffle(gameState.deck);
 
-    // Mettre en place la table initiale (4 cartes face visible)
-    for (let i = 0; i < 4; i++) {
-        gameState.table.push(gameState.deck.pop());
-    }
-
-    // Distribuer les mains de départ (3 cartes chacun)
-    distributeCards();
-
-    // Mettre à jour l'affichage
+    // Mettre à jour l'affichage initial
     updateUI();
+    document.getElementById("table-cards").innerHTML = "";
+
+    // Mettre en place la table initiale (4 cartes face visible) avec animation
+    await dealTableInitial();
+
+    // Distribuer les mains de départ (3 cartes chacun) avec animation
+    await distributeCardsAnimated();
+
+    // Mettre à jour le bonus éligible
     checkBonusEligibility();
     
     showToast("Nouvelle manche ! À vous de jouer.");
@@ -225,12 +241,27 @@ function shuffle(array) {
     }
 }
 
-// Distribue 3 cartes à chaque joueur
-function distributeCards() {
+// Distribue 3 cartes à chaque joueur avec animation de vol
+async function distributeCardsAnimated() {
+    const deckEl = document.getElementById("draw-deck");
+    const humanHandEl = document.getElementById("human-hand");
+    const computerHandEl = document.getElementById("computer-hand");
+
     if (gameState.deck.length >= 6) {
         for (let i = 0; i < 3; i++) {
-            gameState.handHuman.push(gameState.deck.pop());
-            gameState.handComputer.push(gameState.deck.pop());
+            // Humain
+            const cardH = gameState.deck.pop();
+            gameState.handHuman.push(cardH);
+            document.getElementById("deck-card-count").textContent = gameState.deck.length;
+            await animateCardFly(cardH, deckEl, humanHandEl, 400);
+            renderHumanHand();
+
+            // Ordinateur (face cachée)
+            const cardC = gameState.deck.pop();
+            gameState.handComputer.push(cardC);
+            document.getElementById("deck-card-count").textContent = gameState.deck.length;
+            await animateCardFly(null, deckEl, computerHandEl, 400);
+            renderComputerHand();
         }
     }
 }
@@ -480,7 +511,7 @@ function evaluateCaptureSet(cards) {
 // --- TOUR DE JEU DU JOUEUR HUMAIN ---
 
 // Clic sur une carte de la table (centre)
-function handleTableCardClick(clickedCard, cardElement) {
+async function handleTableCardClick(clickedCard, cardElement) {
     if (gameState.activeTurn !== "human" || !gameState.selectedHandCard) return;
 
     const playedCard = gameState.selectedHandCard;
@@ -488,7 +519,7 @@ function handleTableCardClick(clickedCard, cardElement) {
     // Cas d'une carte spéciale en cours de sélection de cible unique (As effect)
     if (gameState.pendingSpecialCard && gameState.pendingSpecialCard.value === 1) {
         // L'effet de l'As permet de voler une carte au choix du centre
-        executeAceEffect(playedCard, clickedCard);
+        await executeAceEffect(playedCard, clickedCard);
         return;
     }
 
@@ -498,12 +529,12 @@ function handleTableCardClick(clickedCard, cardElement) {
     // Si la carte fait partie des cibles valides
     if (optimalCaptures.some(c => c.id === clickedCard.id)) {
         // Faire la capture de toutes les cibles optimales d'un coup (pour fluidifier)
-        executeCapture(playedCard, optimalCaptures, "human");
+        await executeCapture(playedCard, optimalCaptures, "human");
     } else {
         // Si on clique sur la table mais qu'aucun pli n'est possible avec cette carte,
         // on défausse la carte au centre (seulement si le pli optimal global pour cette carte est vide)
         if (optimalCaptures.length === 0) {
-            executeDiscard(playedCard, "human");
+            await executeDiscard(playedCard, "human");
         } else {
             showToast("Vous pouvez faire un pli ! Sélectionnez une carte en surbrillance.");
         }
@@ -511,7 +542,7 @@ function handleTableCardClick(clickedCard, cardElement) {
 }
 
 // Permet de cliquer sur la zone vide du centre pour défausser sa carte
-document.getElementById("table-cards").addEventListener("click", (e) => {
+document.getElementById("table-cards").addEventListener("click", async (e) => {
     if (gameState.activeTurn !== "human" || !gameState.selectedHandCard) return;
     
     // Si on clique sur la zone vide
@@ -520,7 +551,7 @@ document.getElementById("table-cards").addEventListener("click", (e) => {
         const optimalCaptures = findOptimalCaptures(playedCard.value, gameState.table);
 
         if (optimalCaptures.length === 0) {
-            executeDiscard(playedCard, "human");
+            await executeDiscard(playedCard, "human");
         } else {
             showToast("Vous devez capturer les cartes possibles ! Cliquez sur une carte brillante.");
         }
@@ -529,38 +560,70 @@ document.getElementById("table-cards").addEventListener("click", (e) => {
 
 // --- EXÉCUTION DES COUPS ---
 
-// Défausser une carte au centre
-function executeDiscard(playedCard, player) {
-    // Retirer de la main
+// Défausser une carte au centre avec animation
+async function executeDiscard(playedCard, player) {
+    let startEl;
     if (player === "human") {
+        startEl = document.querySelector(`#human-hand .card[data-id="${playedCard.id}"]`);
         gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
         gameState.selectedHandCard = null;
+        renderHumanHand();
     } else {
+        startEl = document.querySelector(`#computer-hand .card`);
         gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
+        renderComputerHand();
     }
+
+    const tableEl = document.getElementById("table-cards");
+    await animateCardFly(playedCard, startEl, tableEl, 500);
 
     // Ajouter à la table
     gameState.table.push(playedCard);
+    renderTableCards();
     
     showToast(`${player === "human" ? gameState.playerName : "L'ordinateur"} a posé un ${playedCard.value} au centre.`);
     
     clearTableHighlights();
-    endTurn();
+    await endTurn();
 }
 
-// Effectuer un pli standard
-function executeCapture(playedCard, targetCards, player) {
-    // Retirer de la main
+// Effectuer un pli standard avec animation
+async function executeCapture(playedCard, targetCards, player) {
+    let startElHand;
     if (player === "human") {
+        startElHand = document.querySelector(`#human-hand .card[data-id="${playedCard.id}"]`);
         gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
         gameState.selectedHandCard = null;
+        renderHumanHand();
     } else {
+        startElHand = document.querySelector(`#computer-hand .card.selected`) || document.querySelector(`#computer-hand .card`);
         gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
+        renderComputerHand();
     }
 
-    // Retirer les cartes de la table
+    const tableEl = document.getElementById("table-cards");
+    const destAvatar = document.querySelector(player === "human" ? ".human-zone .avatar" : ".computer-zone .avatar");
+
+    // 1. Animer la carte jouée volant vers la table
+    await animateCardFly(playedCard, startElHand, tableEl, 400);
+
+    // 2. Animer simultanément la carte jouée + les cibles vers le pli
+    const animations = [];
+    animations.push(animateCardFly(playedCard, tableEl, destAvatar, 500));
+
+    targetCards.forEach(targetCard => {
+        const cardEl = document.querySelector(`#table-cards .card[data-id="${targetCard.id}"]`);
+        if (cardEl) {
+            animations.push(animateCardFly(targetCard, cardEl, destAvatar, 500));
+        }
+    });
+
+    // Retirer de la table pendant le vol
     const targetIds = targetCards.map(c => c.id);
     gameState.table = gameState.table.filter(c => !targetIds.includes(c.id));
+    renderTableCards();
+
+    await Promise.all(animations);
 
     // Ajouter à la pile du joueur
     const pile = player === "human" ? gameState.pileHuman : gameState.pileComputer;
@@ -573,16 +636,13 @@ function executeCapture(playedCard, targetCards, player) {
     const targetStr = targetCards.map(c => `${c.value}${c.color === "yellow" ? "🟨" : ""}`).join(" + ");
     showToast(`${player === "human" ? gameState.playerName : "L'ordinateur"} a capturé [${targetStr}] avec un ${playedCard.value}.`);
 
-    // Gérer les effets de carte spéciale en mode normal (si non joué avec l'effet spécial)
-    // Pas de logique d'effet spécial ici car c'est une capture normale.
-
     // Détection de PASCO
     if (gameState.table.length === 0) {
         triggerPasco(player, playedCard);
     }
 
     clearTableHighlights();
-    endTurn();
+    await endTurn();
 }
 
 // Célébration et attribution du point PASCO
@@ -655,38 +715,78 @@ function checkSpecialCardAndPlay(card, player, onDecisionReady) {
     }
 }
 
-// L'As permet de voler une carte au choix, et l'As reste au centre
-function executeAceEffect(playedCard, targetCard) {
-    // Retirer de la main
+// L'As permet de voler une carte au choix, et l'As reste au centre (version animée)
+async function executeAceEffect(playedCard, targetCard) {
+    const startElHand = document.querySelector(`#human-hand .card[data-id="${playedCard.id}"]`);
+    
     gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
     gameState.selectedHandCard = null;
     gameState.pendingSpecialCard = null;
+    renderHumanHand();
 
-    // Retirer la cible de la table
+    const tableEl = document.getElementById("table-cards");
+    const targetEl = document.querySelector(`#table-cards .card[data-id="${targetCard.id}"]`);
+    const destAvatar = document.querySelector(".human-zone .avatar");
+
+    const animations = [];
+    if (targetEl) {
+        animations.push(animateCardFly(targetCard, targetEl, destAvatar, 500));
+    }
+    animations.push(animateCardFly(playedCard, startElHand, tableEl, 500));
+
     gameState.table = gameState.table.filter(c => c.id !== targetCard.id);
+    renderTableCards();
 
-    // Ajouter la cible à la pile du joueur
+    await Promise.all(animations);
+
     gameState.pileHuman.push(targetCard);
     gameState.lastWinner = "human";
-
-    // L'As est posé au centre de la table
     gameState.table.push(playedCard);
+    renderTableCards();
 
     showToast(`${gameState.playerName} a utilisé l'effet de l'As pour voler le ${targetCard.value}${targetCard.color === "yellow" ? "🟨" : ""}. L'As reste au centre.`);
     
     clearTableHighlights();
-    endTurn();
+    await endTurn();
 }
 
-// Le 7 Couronné vole tout < 7, le 7 reste au centre
-function executeCrowned7Effect(playedCard, player) {
-    const pile = player === "human" ? gameState.pileHuman : gameState.pileComputer;
-    
-    // Capturer toutes les cartes < 7 du centre
+// Le 7 Couronné vole tout < 7, le 7 reste au centre (version animée)
+async function executeCrowned7Effect(playedCard, player) {
+    let startElHand;
+    if (player === "human") {
+        startElHand = document.querySelector(`#human-hand .card[data-id="${playedCard.id}"]`);
+        gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
+        gameState.selectedHandCard = null;
+        renderHumanHand();
+    } else {
+        const compHandEl = document.querySelector("#computer-hand");
+        startElHand = compHandEl.querySelector(".card.selected") || compHandEl.querySelector(".card");
+        gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
+        renderComputerHand();
+    }
+
+    const tableEl = document.getElementById("table-cards");
+    const destAvatar = document.querySelector(player === "human" ? ".human-zone .avatar" : ".computer-zone .avatar");
+
     const captured = gameState.table.filter(c => c.value < 7);
     const capturedIds = captured.map(c => c.id);
-    
+
+    const animations = [];
+    animations.push(animateCardFly(playedCard, startElHand, tableEl, 500));
+
+    captured.forEach(card => {
+        const cardEl = document.querySelector(`#table-cards .card[data-id="${card.id}"]`);
+        if (cardEl) {
+            animations.push(animateCardFly(card, cardEl, destAvatar, 500));
+        }
+    });
+
     gameState.table = gameState.table.filter(c => !capturedIds.includes(c.id));
+    renderTableCards();
+
+    await Promise.all(animations);
+
+    const pile = player === "human" ? gameState.pileHuman : gameState.pileComputer;
     pile.push(...captured);
 
     if (captured.length > 0) {
@@ -695,31 +795,52 @@ function executeCrowned7Effect(playedCard, player) {
 
     // Le 7 reste au centre
     gameState.table.push(playedCard);
-
-    // Retirer de la main
-    if (player === "human") {
-        gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
-        gameState.selectedHandCard = null;
-    } else {
-        gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
-    }
+    renderTableCards();
 
     const name = player === "human" ? gameState.playerName : "L'ordinateur";
     showToast(`${name} a joué le 7 Jaune Couronné et a volé toutes les cartes < 7 (${captured.length} cartes).`);
 
     clearTableHighlights();
-    endTurn();
+    await endTurn();
 }
 
-// Le 7 Bleu vole tout > 7, le 7 reste au centre
-function executeBlue7Effect(playedCard, player) {
-    const pile = player === "human" ? gameState.pileHuman : gameState.pileComputer;
-    
-    // Capturer toutes les cartes > 7 du centre
+// Le 7 Bleu vole tout > 7, le 7 reste au centre (version animée)
+async function executeBlue7Effect(playedCard, player) {
+    let startElHand;
+    if (player === "human") {
+        startElHand = document.querySelector(`#human-hand .card[data-id="${playedCard.id}"]`);
+        gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
+        gameState.selectedHandCard = null;
+        renderHumanHand();
+    } else {
+        const compHandEl = document.querySelector("#computer-hand");
+        startElHand = compHandEl.querySelector(".card.selected") || compHandEl.querySelector(".card");
+        gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
+        renderComputerHand();
+    }
+
+    const tableEl = document.getElementById("table-cards");
+    const destAvatar = document.querySelector(player === "human" ? ".human-zone .avatar" : ".computer-zone .avatar");
+
     const captured = gameState.table.filter(c => c.value > 7);
     const capturedIds = captured.map(c => c.id);
-    
+
+    const animations = [];
+    animations.push(animateCardFly(playedCard, startElHand, tableEl, 500));
+
+    captured.forEach(card => {
+        const cardEl = document.querySelector(`#table-cards .card[data-id="${card.id}"]`);
+        if (cardEl) {
+            animations.push(animateCardFly(card, cardEl, destAvatar, 500));
+        }
+    });
+
     gameState.table = gameState.table.filter(c => !capturedIds.includes(c.id));
+    renderTableCards();
+
+    await Promise.all(animations);
+
+    const pile = player === "human" ? gameState.pileHuman : gameState.pileComputer;
     pile.push(...captured);
 
     if (captured.length > 0) {
@@ -728,20 +849,13 @@ function executeBlue7Effect(playedCard, player) {
 
     // Le 7 reste au centre
     gameState.table.push(playedCard);
-
-    // Retirer de la main
-    if (player === "human") {
-        gameState.handHuman = gameState.handHuman.filter(c => c.id !== playedCard.id);
-        gameState.selectedHandCard = null;
-    } else {
-        gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
-    }
+    renderTableCards();
 
     const name = player === "human" ? gameState.playerName : "L'ordinateur";
     showToast(`${name} a joué le 7 Bleu et a volé toutes les cartes > 7 (${captured.length} cartes).`);
 
     clearTableHighlights();
-    endTurn();
+    await endTurn();
 }
 
 // --- BONUS DE MAIN ---
@@ -786,16 +900,21 @@ function triggerHumanHandBonus() {
         const cardObj = gameState.handHuman.find(c => c.id === id);
         
         const newEl = cardEl.cloneNode(true);
-        newEl.addEventListener("click", () => {
+        newEl.addEventListener("click", async () => {
+            const startElHand = document.querySelector(`#human-hand .card[data-id="${cardObj.id}"]`);
+            const destAvatar = document.querySelector(".human-zone .avatar");
+
             // Mettre la carte choisie dans la pile personnelle
             gameState.handHuman = gameState.handHuman.filter(c => c.id !== cardObj.id);
+            renderHumanHand();
+
+            await animateCardFly(cardObj, startElHand, destAvatar, 500);
             gameState.pileHuman.push(cardObj);
 
             showToast(`Bonus de main : vous avez placé un ${cardObj.value} directement dans vos gains. Votre tour prend fin.`);
             
-            // Re-rendre la main normalement et finir le tour
-            renderHumanHand();
-            endTurn();
+            // Finir le tour
+            await endTurn();
         });
         cardEl.parentNode.replaceChild(newEl, cardEl);
     });
@@ -803,59 +922,102 @@ function triggerHumanHandBonus() {
 
 // --- TOUR DE L'ORDINATEUR (IA) ---
 
-function runComputerTurn() {
+async function runComputerTurn() {
     document.getElementById("action-prompt").textContent = "L'ordinateur réfléchit...";
     
-    setTimeout(() => {
-        // 1. Vérifier si l'ordinateur est éligible au Bonus de Main
-        if (checkAIBonusEligibility()) {
-            executeAIBonus();
-            return;
+    // Attendre 1000ms (réflexion)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // 1. Vérifier si l'ordinateur est éligible au Bonus de Main
+    if (checkAIBonusEligibility()) {
+        await executeAIBonus();
+        return;
+    }
+
+    // 2. Évaluer les coups possibles
+    let bestPlay = evaluateAICoups();
+
+    if (bestPlay) {
+        // Révéler visuellement la carte jouée dans la main de l'ordinateur
+        const compHandContainer = document.getElementById("computer-hand");
+        const firstCardEl = compHandContainer.querySelector(".card");
+        if (firstCardEl) {
+            const revealedCardEl = createCardDOM(bestPlay.card);
+            revealedCardEl.classList.add("revealing", "selected");
+            compHandContainer.replaceChild(revealedCardEl, firstCardEl);
         }
 
-        // 2. Évaluer les coups possibles
-        let bestPlay = evaluateAICoups();
+        // Mettre en surbrillance les cibles si capture normale
+        if (!bestPlay.useSpecialEffect && bestPlay.targets.length > 0) {
+            bestPlay.targets.forEach(targetCard => {
+                const targetEl = document.querySelector(`#table-cards .card[data-id="${targetCard.id}"]`);
+                if (targetEl) {
+                    targetEl.classList.add("target-glow");
+                }
+            });
+        }
 
-        if (bestPlay) {
-            // Exécuter le meilleur coup
-            if (bestPlay.useSpecialEffect) {
-                if (bestPlay.card.value === 1) {
-                    // Effet de l'As : Capturer la carte ciblée de la table
-                    executeAceEffectAI(bestPlay.card, bestPlay.targetCard);
-                } else if (bestPlay.card.isCrowned) {
-                    executeCrowned7Effect(bestPlay.card, "computer");
-                } else {
-                    executeBlue7Effect(bestPlay.card, "computer");
-                }
+        // Attendre 1200ms pour laisser le joueur observer
+        await new Promise(resolve => setTimeout(resolve, 1200));
+
+        // Exécuter le meilleur coup
+        if (bestPlay.useSpecialEffect) {
+            if (bestPlay.card.value === 1) {
+                // Effet de l'As : Capturer la carte ciblée de la table
+                await executeAceEffectAI(bestPlay.card, bestPlay.targetCard);
+            } else if (bestPlay.card.isCrowned) {
+                await executeCrowned7Effect(bestPlay.card, "computer");
             } else {
-                // Jeu normal (pli ou défausse)
-                if (bestPlay.targets.length > 0) {
-                    executeCapture(bestPlay.card, bestPlay.targets, "computer");
-                } else {
-                    executeDiscard(bestPlay.card, "computer");
-                }
+                await executeBlue7Effect(bestPlay.card, "computer");
             }
         } else {
-            // Cas de secours (ne devrait jamais arriver si main non vide)
-            if (gameState.handComputer.length > 0) {
-                executeDiscard(gameState.handComputer[0], "computer");
+            // Jeu normal (pli ou défausse)
+            if (bestPlay.targets.length > 0) {
+                await executeCapture(bestPlay.card, bestPlay.targets, "computer");
             } else {
-                endTurn();
+                await executeDiscard(bestPlay.card, "computer");
             }
         }
-    }, 1500); // Petit délai pour simuler la réflexion
+    } else {
+        // Cas de secours
+        if (gameState.handComputer.length > 0) {
+            await executeDiscard(gameState.handComputer[0], "computer");
+        } else {
+            await endTurn();
+        }
+    }
 }
 
-// As joué par l'ordinateur pour son effet
-function executeAceEffectAI(playedCard, targetCard) {
+// As joué par l'ordinateur pour son effet avec animation
+async function executeAceEffectAI(playedCard, targetCard) {
+    const compHandEl = document.querySelector("#computer-hand");
+    const startElHand = compHandEl.querySelector(".card.selected") || compHandEl.querySelector(".card");
+    
     gameState.handComputer = gameState.handComputer.filter(c => c.id !== playedCard.id);
+    renderComputerHand();
+
+    const tableEl = document.getElementById("table-cards");
+    const targetEl = document.querySelector(`#table-cards .card[data-id="${targetCard.id}"]`);
+    const destAvatar = document.querySelector(".computer-zone .avatar");
+
+    const animations = [];
+    if (targetEl) {
+        animations.push(animateCardFly(targetCard, targetEl, destAvatar, 500));
+    }
+    animations.push(animateCardFly(playedCard, startElHand, tableEl, 500));
+
     gameState.table = gameState.table.filter(c => c.id !== targetCard.id);
+    renderTableCards();
+
+    await Promise.all(animations);
+
     gameState.pileComputer.push(targetCard);
     gameState.lastWinner = "computer";
     gameState.table.push(playedCard);
+    renderTableCards();
 
     showToast(`L'ordinateur a utilisé l'effet de l'As pour voler le ${targetCard.value}${targetCard.color === "yellow" ? "🟨" : ""}. L'As reste au centre.`);
-    endTurn();
+    await endTurn();
 }
 
 // Décide si l'ordinateur active ou non le bonus de main
@@ -878,13 +1040,12 @@ function checkAIBonusEligibility() {
     return false;
 }
 
-// Exécute le bonus de main pour l'ordinateur
-function executeAIBonus() {
+// Exécute le bonus de main pour l'ordinateur avec animation
+async function executeAIBonus() {
     gameState.bonusUsedThisRound.computer = true;
     
     // Choisir la carte la moins utile à mettre dans la pile (ex. plus faible valeur bleue)
     let sortedHand = [...gameState.handComputer].sort((a, b) => {
-        // Priorité de préservation : Crowned 7 > Jaunes > 7 normaux > valeur
         if (a.isCrowned) return 1;
         if (b.isCrowned) return -1;
         if (a.color === "yellow" && b.color !== "yellow") return 1;
@@ -893,11 +1054,29 @@ function executeAIBonus() {
     });
 
     let chosenCard = sortedHand[0];
+    
+    // Révéler la carte bonus de l'ordinateur
+    const compHandContainer = document.getElementById("computer-hand");
+    const firstCardEl = compHandContainer.querySelector(".card");
+    if (firstCardEl) {
+        const revealedCardEl = createCardDOM(chosenCard);
+        revealedCardEl.classList.add("revealing", "selected");
+        compHandContainer.replaceChild(revealedCardEl, firstCardEl);
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const startElHand = document.querySelector("#computer-hand .card.selected") || document.querySelector("#computer-hand .card");
+    const destAvatar = document.querySelector(".computer-zone .avatar");
+
     gameState.handComputer = gameState.handComputer.filter(c => c.id !== chosenCard.id);
+    renderComputerHand();
+
+    await animateCardFly(chosenCard, startElHand, destAvatar, 500);
     gameState.pileComputer.push(chosenCard);
 
     showToast(`🤖 L'ordinateur a activé son Bonus de main et a sécurisé un ${chosenCard.value}. Son tour prend fin.`);
-    endTurn();
+    await endTurn();
 }
 
 // Décide de l'effet spécial pour l'ordinateur (renvoie true ou false)
@@ -1010,27 +1189,27 @@ function evaluateAICoups() {
 
 // --- GESTION DES TOURS ET FIN DE MANCHE ---
 
-function endTurn() {
+async function endTurn() {
     updateUI();
 
     // Vérifier si la manche est terminée (mains et pioche vides)
     if (gameState.handHuman.length === 0 && gameState.handComputer.length === 0) {
         if (gameState.deck.length > 0) {
-            // Si la pioche n'est pas vide, redistribuer
-            distributeCards();
+            // Si la pioche n'est pas vide, redistribuer avec animation
+            await distributeCardsAnimated();
             updateUI();
             checkBonusEligibility();
             gameState.activeTurn = "human";
             document.getElementById("action-prompt").textContent = "Sélectionnez une carte pour jouer";
         } else {
             // Fin de la manche
-            endRound();
+            await endRound();
         }
     } else {
         // Alterner les tours
         if (gameState.activeTurn === "human") {
             gameState.activeTurn = "computer";
-            runComputerTurn();
+            await runComputerTurn();
         } else {
             gameState.activeTurn = "human";
             checkBonusEligibility();
@@ -1039,13 +1218,28 @@ function endTurn() {
     }
 }
 
-function endRound() {
-    // 1. Les cartes restantes au centre sont gagnées par le dernier joueur ayant fait un pli
+async function endRound() {
+    // 1. Les cartes restantes au centre sont gagnées par le dernier joueur ayant fait un pli (avec animation)
     if (gameState.table.length > 0 && gameState.lastWinner) {
+        const destAvatar = document.querySelector(gameState.lastWinner === "human" ? ".human-zone .avatar" : ".computer-zone .avatar");
+        const tableEl = document.getElementById("table-cards");
+
+        const animations = [];
+        gameState.table.forEach(targetCard => {
+            const cardEl = document.querySelector(`#table-cards .card[data-id="${targetCard.id}"]`);
+            if (cardEl) {
+                animations.push(animateCardFly(targetCard, cardEl, destAvatar, 600));
+            }
+        });
+
         const pile = gameState.lastWinner === "human" ? gameState.pileHuman : gameState.pileComputer;
         pile.push(...gameState.table);
-        showToast(`Dernier pli : les cartes restantes au centre sont remportées par ${gameState.lastWinner === "human" ? gameState.playerName : "l'ordinateur"}.`);
         gameState.table = [];
+        renderTableCards();
+
+        await Promise.all(animations);
+
+        showToast(`Dernier pli : les cartes restantes au centre sont remportées par ${gameState.lastWinner === "human" ? gameState.playerName : "l'ordinateur"}.`);
     }
 
     updateUI();
@@ -1240,7 +1434,7 @@ function showToast(message) {
 
 // Clic pour jouer une carte spéciale (gestionnaire de choix d'effet)
 function handleSpecialCardChoice(card, player, onDone) {
-    checkSpecialCardAndPlay(card, player, (useEffect) => {
+    checkSpecialCardAndPlay(card, player, async (useEffect) => {
         if (useEffect) {
             // Appliquer l'effet spécial
             if (card.value === 1) {
@@ -1262,10 +1456,10 @@ function handleSpecialCardChoice(card, player, onDone) {
                 }
             } else if (card.isCrowned) {
                 // 7 couronné : voler tout < 7, le 7 reste
-                executeCrowned7Effect(card, player);
+                await executeCrowned7Effect(card, player);
             } else {
                 // 7 bleu : voler tout > 7, le 7 reste
-                executeBlue7Effect(card, player);
+                await executeBlue7Effect(card, player);
             }
         } else {
             // Jeu normal : Pli normal ou défausse standard
@@ -1276,27 +1470,27 @@ function handleSpecialCardChoice(card, player, onDone) {
 
 // Ré-écriture de handleTableCardClick pour intégrer les décisions de cartes spéciales du Joueur Humain
 const originalTableCardClick = handleTableCardClick;
-handleTableCardClick = function(clickedCard, cardElement) {
+handleTableCardClick = async function(clickedCard, cardElement) {
     if (gameState.activeTurn !== "human" || !gameState.selectedHandCard) return;
     const playedCard = gameState.selectedHandCard;
 
     // Si on a déjà choisi d'activer l'effet de l'As
     if (gameState.pendingSpecialCard && gameState.pendingSpecialCard.value === 1) {
-        executeAceEffect(playedCard, clickedCard);
+        await executeAceEffect(playedCard, clickedCard);
         return;
     }
 
     // Si c'est un As ou un 7 non encore décidé
     if ((playedCard.value === 1 || playedCard.value === 7) && !gameState.pendingSpecialCard) {
-        handleSpecialCardChoice(playedCard, "human", (useEffect) => {
+        handleSpecialCardChoice(playedCard, "human", async (useEffect) => {
             if (!useEffect) {
                 // Si jeu normal, on exécute comme d'habitude
                 const optimalCaptures = findOptimalCaptures(playedCard.value, gameState.table);
                 if (optimalCaptures.some(c => c.id === clickedCard.id)) {
-                    executeCapture(playedCard, optimalCaptures, "human");
+                    await executeCapture(playedCard, optimalCaptures, "human");
                 } else {
                     if (optimalCaptures.length === 0) {
-                        executeDiscard(playedCard, "human");
+                        await executeDiscard(playedCard, "human");
                     } else {
                         showToast("Vous pouvez faire un pli ! Sélectionnez une carte en surbrillance.");
                     }
@@ -1310,6 +1504,64 @@ handleTableCardClick = function(clickedCard, cardElement) {
         });
     } else {
         // Carte classique, comportement normal
-        originalTableCardClick(clickedCard, cardElement);
+        await originalTableCardClick(clickedCard, cardElement);
     }
 };
+
+// --- SYSTÈME D'ANIMATION DE CARTES EN VOL ---
+function animateCardFly(cardData, startElement, endElement, duration = 600) {
+    return new Promise((resolve) => {
+        if (!startElement || !endElement) {
+            resolve();
+            return;
+        }
+
+        // 1. Obtenir les positions absolues (rects)
+        const startRect = startElement.getBoundingClientRect();
+        const endRect = endElement.getBoundingClientRect();
+
+        // 2. Créer une copie visuelle de la carte
+        let animCard;
+        if (cardData) {
+            animCard = createCardDOM(cardData);
+        } else {
+            // Carte face cachée (dos de carte)
+            animCard = document.createElement("div");
+            animCard.className = "card card-back";
+            const pattern = document.createElement("div");
+            pattern.className = "card-back-pattern";
+            animCard.appendChild(pattern);
+        }
+
+        animCard.classList.add("card-animation-fly");
+
+        // 3. Définir le style initial
+        animCard.style.left = `${startRect.left}px`;
+        animCard.style.top = `${startRect.top}px`;
+        animCard.style.width = `${startRect.width}px`;
+        animCard.style.height = `${startRect.height}px`;
+
+        document.body.appendChild(animCard);
+
+        // Forcer le reflow
+        animCard.offsetWidth;
+
+        // 4. Calculer la translation
+        const dx = endRect.left - startRect.left + (endRect.width - startRect.width) / 2;
+        const dy = endRect.top - startRect.top + (endRect.height - startRect.height) / 2;
+        
+        // Optionnel : adapter l'échelle
+        const scaleX = endRect.width / startRect.width;
+        const scaleY = endRect.height / startRect.height;
+        const scale = Math.min(scaleX, scaleY);
+
+        animCard.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+        animCard.style.opacity = "0.85";
+
+        // 5. Nettoyer après la transition
+        setTimeout(() => {
+            animCard.remove();
+            resolve();
+        }, duration);
+    });
+}

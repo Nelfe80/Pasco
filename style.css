@@ -1259,3 +1259,42 @@ body, html {
         height: calc(100vh - 120px);
     }
 }
+
+/* --------------------------------------------------------------------------
+   CARD ANIMATION FLY & REVEAL EFFECTS
+   -------------------------------------------------------------------------- */
+.card-animation-fly {
+    position: fixed !important;
+    margin: 0 !important;
+    z-index: 9999 !important;
+    pointer-events: none !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7) !important;
+    transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.6s ease;
+}
+
+/* Card reveal animation (flip effect) */
+@keyframes cardReveal {
+    0% {
+        transform: rotateY(180deg) scale(1);
+    }
+    50% {
+        transform: rotateY(90deg) scale(1.15);
+    }
+    100% {
+        transform: rotateY(0deg) scale(1.05);
+    }
+}
+
+.card.revealing {
+    animation: cardReveal 0.6s ease forwards;
+    transform-style: preserve-3d;
+}
+
+/* Target cards highlighting */
+.card.target-glow {
+    box-shadow: var(--shadow-glow-blue) !important;
+    border-color: var(--accent-blue) !important;
+    transform: scale(1.05);
+    z-index: 10;
+}
+
