@@ -1054,8 +1054,8 @@ function endRound() {
     const pts = calculateRoundPoints();
     
     // 3. Ajouter les points au score cumulé total
-    gameState.scores.human += pts.human;
-    gameState.scores.computer += pts.computer;
+    gameState.scores.human += pts.human.total;
+    gameState.scores.computer += pts.computer.total;
 
     document.getElementById("total-score-human").textContent = gameState.scores.human;
     document.getElementById("total-score-computer").textContent = gameState.scores.computer;
@@ -1255,6 +1255,7 @@ function handleSpecialCardChoice(card, player, onDone) {
                         el.classList.add("selectable-target");
                     });
                     // On garde la carte en main sélectionnée et on attend le clic table
+                    onDone(true);
                 } else {
                     // Pour l'ordinateur, l'IA a déjà choisi sa cible dans bestPlay
                     onDone(true);
