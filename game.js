@@ -1514,6 +1514,7 @@ async function endRound() {
     addRoundToHistory(gameState.currentRound, pts.human, pts.computer);
 
     // 5. Afficher la modale de fin de manche
+    gameState.isAnimating = false; // Reset animating state to allow starting the next round
     showRoundSummaryModal(pts);
 }
 
