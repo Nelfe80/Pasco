@@ -1318,7 +1318,7 @@ body, html {
         display: none; /* Hide sidebar list on small screens to save space */
     }
     .game-table {
-        grid-template-rows: 140px 1fr 160px;
+        grid-template-rows: auto 1fr auto;
         height: calc(100vh - 120px);
     }
 }
@@ -1363,75 +1363,264 @@ body, html {
 
 /* Mobile responsive adjustments */
 @media (max-width: 600px) {
-    /* Scale down cards */
-    .card {
-        width: 70px;
-        height: 100px;
-        padding: 0.35rem;
+    /* Prevent home screen logo cutoff */
+    #home-screen {
+        justify-content: flex-start;
+        padding: 1rem 0.5rem;
+        gap: 1rem;
+        overflow-y: auto;
     }
-    
-    .card-center {
+
+    .logo-container {
+        margin-bottom: 0.5rem;
+    }
+
+    .logo-img {
+        max-width: 180px;
+    }
+
+    .logo-subtitle {
+        font-size: 0.85rem;
+        letter-spacing: 2px;
+    }
+
+    .setup-card {
+        padding: 1.2rem;
+        max-width: 95%;
+        border-radius: var(--radius-md);
+    }
+
+    .setup-card h2 {
         font-size: 1.4rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+    }
+
+    .input-group {
+        margin-bottom: 1rem;
+    }
+
+    .input-group input[type="text"] {
+        padding: 0.6rem 0.8rem;
+        font-size: 1rem;
+    }
+
+    .btn {
+        padding: 0.6rem 1.2rem;
+        font-size: 1rem;
+    }
+
+    .rules-preview {
+        padding: 1rem;
+        max-width: 95%;
+    }
+
+    .rules-preview h3 {
+        font-size: 1rem;
+        margin-bottom: 0.6rem;
+    }
+
+    .rules-preview li {
+        font-size: 0.85rem;
+    }
+
+    /* Status Bar instead of Sidebar */
+    .game-sidebar {
+        padding: 0.4rem 0.8rem;
+        gap: 0.5rem;
+        justify-content: space-between;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .logo-mini-img {
+        display: none !important;
+    }
+
+    .sidebar-header {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+    }
+
+    #round-indicator {
+        font-size: 1rem;
+        margin: 0;
+        font-weight: 800;
+        background: linear-gradient(135deg, #fff 40%, var(--accent-gold) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .scoreboard-card {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        flex-grow: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+    }
+
+    .scoreboard-card h3 {
+        display: none;
+    }
+
+    .score-row {
+        gap: 0.4rem;
+        padding: 0;
+        border-bottom: none;
+    }
+
+    .score-row .name {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+    }
+
+    .score-row .score-val {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: var(--accent-gold);
+    }
+
+    .target-indicator {
+        display: none;
+    }
+
+    /* Game Table */
+    .game-table {
+        grid-template-rows: auto 1fr auto;
+        height: calc(100vh - 55px); /* Exactly fits status bar height */
+        padding: 0.3rem;
+    }
+
+    /* Player Zones */
+    .player-zone {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.4rem;
+        background: rgba(0, 0, 0, 0.1);
+    }
+
+    .player-profile {
+        min-width: auto;
+        width: 100%;
+        justify-content: center;
+        gap: 0.6rem;
+    }
+
+    .player-profile .avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 1.1rem;
+        border-width: 1.5px;
+    }
+
+    .player-info {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .player-profile .player-name {
+        font-size: 0.9rem;
+    }
+
+    .player-stats {
+        margin-top: 0;
+        font-size: 0.75rem;
+        gap: 0.5rem;
+    }
+
+    /* Cards Scaling */
+    .card {
+        width: 68px;
+        height: 95px;
+        padding: 0.3rem;
+        border-width: 2px;
+    }
+
+    .card-center {
+        font-size: 1.3rem;
         margin: 0;
     }
-    
+
     .card-corner span {
+        font-size: 0.7rem;
+    }
+
+    .card-suit-mini {
+        font-size: 0.6rem;
+    }
+
+    .deck-card {
+        width: 68px;
+        height: 95px;
+        border-width: 2px;
+    }
+
+    .deck-count {
+        font-size: 1.6rem;
+    }
+
+    .deck-label {
         font-size: 0.75rem;
     }
-    
-    .card-suit-mini {
-        font-size: 0.65rem;
-    }
-    
-    /* Optimize game table rows */
-    .game-table {
-        grid-template-rows: 110px 1fr 130px;
-        padding: 0.5rem;
-    }
-    
-    .table-cards-grid {
-        min-height: 110px;
+
+    /* Center Zone with side-by-side Deck and Table */
+    .center-zone {
+        grid-template-columns: 75px 1fr;
         gap: 0.5rem;
-        padding: 0.5rem;
+        padding: 0.3rem 0.5rem;
+        align-items: center;
     }
-    
-    /* Adjust sidebar header and logo */
-    .logo-mini-img {
-        max-width: 100px;
-    }
-    
-    .sidebar-header {
+
+    .deck-area {
         display: flex;
         flex-direction: column;
         align-items: center;
+        gap: 0.2rem;
     }
-    
-    .scoreboard-card {
-        padding: 0.4rem 0.6rem;
-        font-size: 0.8rem;
-        margin-top: 0;
+
+    .table-area {
+        gap: 0.3rem;
+        width: 100%;
     }
-    
-    .score-row .name {
-        font-size: 0.9rem;
+
+    .table-title {
+        font-size: 0.75rem;
+        letter-spacing: 1px;
     }
-    
-    .score-row .score-val {
-        font-size: 1.1rem;
+
+    .table-cards-grid {
+        min-height: 105px;
+        gap: 0.4rem;
+        padding: 0.4rem;
     }
-    
-    .setup-card {
-        padding: 1.5rem;
-        max-width: 90%;
+
+    /* Action prompted elements */
+    .player-controls {
+        width: 100%;
+        gap: 0.2rem;
     }
-    
-    .logo-img {
-        max-width: 240px;
+
+    .action-message {
+        font-size: 0.75rem;
+        padding: 0.15rem 0.4rem;
     }
-    
-    .logo-subtitle {
-        font-size: 0.95rem;
-        letter-spacing: 2px;
+
+    .special-power-bubble {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.75rem;
+        max-width: 95%;
+        margin-top: 0.2rem;
+    }
+
+    .bonus-btn {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.75rem;
     }
 }
 
