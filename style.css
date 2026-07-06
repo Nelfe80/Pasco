@@ -1362,7 +1362,7 @@ body, html {
 }
 
 /* Mobile responsive adjustments */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
     /* Prevent home screen logo cutoff */
     #home-screen {
         justify-content: flex-start;
@@ -1505,7 +1505,7 @@ body, html {
     }
 
     .player-profile {
-        min-width: auto;
+        min-width: auto !important;
         width: 100%;
         justify-content: center;
         gap: 0.6rem;
@@ -1536,42 +1536,44 @@ body, html {
 
     /* Cards Scaling */
     .card {
-        width: 68px;
-        height: 95px;
-        padding: 0.3rem;
+        width: 65px;
+        height: 90px;
+        padding: 0.25rem;
         border-width: 2px;
     }
 
     .card-center {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
         margin: 0;
     }
 
     .card-corner span {
-        font-size: 0.7rem;
+        font-size: 0.65rem;
     }
 
     .card-suit-mini {
-        font-size: 0.6rem;
+        font-size: 0.55rem;
     }
 
     .deck-card {
-        width: 68px;
-        height: 95px;
+        width: 60px;
+        height: 85px;
         border-width: 2px;
+        transform: rotate(-3deg) translateY(-15px); /* Shrunk & shifted upwards */
     }
 
     .deck-count {
-        font-size: 1.6rem;
+        font-size: 1.4rem;
     }
 
     .deck-label {
         font-size: 0.75rem;
+        margin-top: -12px; /* Pull label up as well */
     }
 
     /* Center Zone with side-by-side Deck and Table */
     .center-zone {
-        grid-template-columns: 75px 1fr;
+        grid-template-columns: 70px 1fr;
         gap: 0.5rem;
         padding: 0.3rem 0.5rem;
         align-items: center;
@@ -1595,7 +1597,7 @@ body, html {
     }
 
     .table-cards-grid {
-        min-height: 105px;
+        min-height: 100px;
         gap: 0.4rem;
         padding: 0.4rem;
     }
@@ -1603,6 +1605,7 @@ body, html {
     /* Action prompted elements */
     .player-controls {
         width: 100%;
+        min-width: auto !important;
         gap: 0.2rem;
     }
 
