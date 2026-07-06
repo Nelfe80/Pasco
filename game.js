@@ -296,6 +296,19 @@ function updateUI() {
     document.getElementById("comp-yellows-won").textContent = countYellows(gameState.pileComputer);
     document.getElementById("comp-pasco-count").textContent = gameState.roundScores.computer.pascos;
 
+    // Mettre à jour l'état visuel du tour actif
+    const humanZone = document.querySelector(".human-zone");
+    const compZone = document.querySelector(".computer-zone");
+    if (humanZone && compZone) {
+        if (gameState.activeTurn === "human") {
+            humanZone.classList.add("active-turn");
+            compZone.classList.remove("active-turn");
+        } else {
+            humanZone.classList.remove("active-turn");
+            compZone.classList.add("active-turn");
+        }
+    }
+
     // Rendre la table
     renderTableCards();
 

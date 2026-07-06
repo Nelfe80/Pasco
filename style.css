@@ -828,6 +828,26 @@ body, html {
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
 }
 
+/* Zoom and spread cards on active human turn */
+.human-zone.active-turn .hand .card {
+    margin-left: -15px; /* less overlapping so we see them better! */
+    transform: scale(1.15);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.human-zone.active-turn .hand .card:hover {
+    transform: translateY(-25px) scale(1.2);
+    margin-right: 15px;
+    z-index: 15;
+}
+
+.human-zone.active-turn .hand .card.selected {
+    transform: translateY(-30px) scale(1.2) !important;
+    border: 3px solid var(--accent-gold) !important;
+    box-shadow: var(--shadow-glow-gold) !important;
+    z-index: 20;
+}
+
 /* Card status styles */
 .card.selected {
     border: 3px solid var(--accent-gold) !important;
@@ -1553,6 +1573,17 @@ body, html {
 
     .card-suit-mini {
         font-size: 0.55rem;
+    }
+
+    .human-zone.active-turn .hand .card {
+        margin-left: -8px; /* even less overlap on mobile! */
+        transform: scale(1.15); /* zoom even more on mobile! */
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    }
+    
+    .human-zone.active-turn .hand .card.selected {
+        transform: translateY(-20px) scale(1.2) !important;
+        z-index: 20;
     }
 
     .deck-card {
