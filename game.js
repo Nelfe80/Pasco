@@ -1448,11 +1448,11 @@ async function endTurn() {
     if (gameState.handHuman.length === 0 && gameState.handComputer.length === 0) {
         if (gameState.deck.length > 0) {
             gameState.isAnimating = true;
+            gameState.activeTurn = "human"; // Set active turn before distribution so UI renders spaced cards
             // Si la pioche n'est pas vide, redistribuer avec animation
             await distributeCardsAnimated();
             updateUI();
             checkBonusEligibility();
-            gameState.activeTurn = "human";
             document.getElementById("action-prompt").textContent = "Sélectionnez une carte pour jouer";
             gameState.isAnimating = false;
         } else {
