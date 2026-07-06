@@ -830,7 +830,7 @@ body, html {
 
 /* Zoom and spread cards on active human turn */
 .human-zone.active-turn .hand .card {
-    margin-left: -15px; /* less overlapping so we see them better! */
+    margin-left: 12px; /* Spaced out horizontally (no overlap) */
     transform: scale(1.15);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
 }
@@ -1511,8 +1511,9 @@ body, html {
     /* Game Table */
     .game-table {
         grid-template-rows: auto 1fr auto;
-        height: calc(100vh - 55px); /* Exactly fits status bar height */
+        height: 100%; /* Fits exactly the remaining grid row height */
         padding: 0.3rem;
+        overflow: hidden;
     }
 
     /* Player Zones */
@@ -1576,7 +1577,7 @@ body, html {
     }
 
     .human-zone.active-turn .hand .card {
-        margin-left: -8px; /* even less overlap on mobile! */
+        margin-left: 10px; /* Spaced out horizontally (no overlap) */
         transform: scale(1.15); /* zoom even more on mobile! */
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
     }
