@@ -1237,8 +1237,7 @@ body, html {
 }
 
 .pasco-banner-img {
-    max-width: 250px;
-    width: 100%;
+    width: 250px; /* Fixed width to prevent flexbox collapse */
     height: auto;
     filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
     animation: pulseText 0.5s infinite alternate;
@@ -1664,7 +1663,7 @@ body, html {
     }
 
     .pasco-banner-img {
-        max-width: 180px;
+        width: 160px; /* Fixed width to prevent flexbox collapse */
     }
 
     .pasco-subtext {
